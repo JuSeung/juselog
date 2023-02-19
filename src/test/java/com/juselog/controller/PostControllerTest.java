@@ -9,30 +9,38 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
+import com.juselog.domain.Post;
+import com.juselog.repository.PostRepository;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
-@WebMvcTest
+
+@SpringBootTest
+@AutoConfigureMockMvc
 class PostControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private PostRepository postRepository;
+
+    @BeforeEach
+    void clena () {
+        postRepository.deleteAll();
+    }
+
 
     @Test
     @DisplayName("/posts 요청시 Hello World를 출력 한다.")
     void test() throws Exception {
-        // 글 제목
-        // 글 내용
-        // 사용자
-            // id
-            // name
-            // level
         // expected
         mockMvc.perform(post("/posts")
                         .contentType(MediaType.APPLICATION_JSON) // 기본타입이 아니니 설정 해줘야함
@@ -49,14 +57,33 @@ class PostControllerTest {
     void test2() throws Exception {
         // expected
         mockMvc.perform(post("/posts")
-                        .contentType(MediaType.APPLICATION_JSON) // 기본타입이 아니니 설정 해줘야함
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\": null, \"content\": \"내용입니다.\"}")
-                ) // application/json
+                )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("400"))
                 .andExpect(jsonPath("$.message").value("잘못된 요청 입니다."))
                 .andExpect(jsonPath("$.validation.title").value("타이틀을 입력해주세요."))
                 .andDo(print());
 
+
+    }
+    @Test
+    @DisplayName("/posts 요청시 DB에 값을 저장한다.")
+    void test3() throws Exception {
+        // when
+        mockMvc.perform(post("/posts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\": \"제목1\", \"content\": \"내용입니다.\"}")
+                )
+                .andExpect(status().isOk())
+                .andDo(print());
+        // then
+
+        assertEquals(1L, postRepository.count());
+
+        Post post = postRepository.findAll().get(0);
+        assertEquals("제목1", post.getTitle());
+        assertEquals("내용입니다.", post.getContent());
     }
 }
